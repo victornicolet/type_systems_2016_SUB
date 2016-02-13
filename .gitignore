@@ -1,0 +1,7 @@
+*~
+*.cmx
+*.mli.depends
+*/_build
+src/_tags
+*#
+*.native

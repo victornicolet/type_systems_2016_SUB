@@ -10,8 +10,12 @@ type typ =
   | Alpha
   | Int
   | Float
+  | TypeVariable of variable
   | Arrow of typ * typ
   | Record of rectyp
+  | Parametric of
+	  (typ list * typ) (* Parametric type *)
+
 
 and rectyp = (label * typ) list
 
@@ -57,8 +61,15 @@ and pretty_typ1 = function
   | Top -> "T"
   | Int -> "int"
   | Float -> "float"
+  | TypeVariable v -> v
   | Record rt -> "{" ^ String.concat "; " (List.map pretty_field rt) ^ "}"
+  | Parametric (tl, t) -> "forall " ^ String.concat " " (List.map type_variable tl) ^ ":" ^ pretty_typ t
   | t -> "(" ^ pretty_typ t ^ ")"
+
+and type_variable tv =
+  match tv with
+  | TypeVariable tv -> tv
+  | _ -> failwith "Only for type variables"
 
 and pretty_field (lbl, ty) =
   lbl ^ ":" ^ pretty_typ ty

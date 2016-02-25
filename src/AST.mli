@@ -10,8 +10,11 @@ type typ =
   | Alpha
   | Int                 (* The type of integer numbers *)
   | Float               (* The type of floating-point numbers *)
+  | TypeVariable of variable
   | Arrow of typ * typ  (* Function types t1 -> t2 *)
   | Record of rectyp    (* Record types { ... lbl : t ... } *)
+  | Parametric of
+	  (typ list * typ) (* Parametric type *)
 
 and rectyp = (label * typ) list
 

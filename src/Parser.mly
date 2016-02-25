@@ -18,13 +18,13 @@ let rec check_duplicates (l: (string * 'a) list) =
 
 /* Tokens */
 
-%token ALPHA
 %token COLON
 %token DOT
 %token EOF
 %token EQUAL
 %token FLOAT
 %token <float> FLOATCONST
+%token FORALL
 %token FUN
 %token <string> IDENT
 %token IN
@@ -62,12 +62,17 @@ typ:
   | TOP                   { Top }
   | INT                   { Int }
   | FLOAT                 { Float }
-  | ALPHA                 { Alpha }
+  | IDENT                 { TypeVariable $1}
   | typ MINUSGREATER typ  { Arrow($1,$3) }
   | LBRACE rectyp RBRACE  { check_duplicates $2; Record $2 }
   | LBRACE RBRACE         { Record [] }
   | LPAREN typ RPAREN     { $2 }
+  | FORALL typvars COLON typ { Parametric($2, $4)}
 ;
+
+typvars:
+  | IDENT {[TypeVariable $1]}
+  | IDENT typvars { (TypeVariable $1) :: $2 }
 
 rectyp:
   | lbltyp                { [$1] }

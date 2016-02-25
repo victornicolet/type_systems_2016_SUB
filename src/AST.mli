@@ -7,6 +7,7 @@ type label = string     (* Names of record labels *)
 
 type typ =
   | Top                 (* The universal "top" type *)
+  | Alpha
   | Int                 (* The type of integer numbers *)
   | Float               (* The type of floating-point numbers *)
   | Arrow of typ * typ  (* Function types t1 -> t2 *)

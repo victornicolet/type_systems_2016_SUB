@@ -7,6 +7,7 @@ type label = string     (* Names of record labels *)
 
 type typ =
   | Top
+  | Alpha
   | Int
   | Float
   | Arrow of typ * typ

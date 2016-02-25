@@ -43,6 +43,7 @@ rule token = parse
   | ";"         { SEMI }
   | ";;"        { SEMISEMI }
   | "T"         { TOP }
+  | undersc_id  { UNITYP s}
   | ident as s  { IDENT s }
   | int_literal as s { INTCONST (int_of_string s) }
   | float_literal as s { FLOATCONST (float_of_string s) }

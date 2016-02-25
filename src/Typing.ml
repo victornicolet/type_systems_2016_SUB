@@ -46,10 +46,12 @@ let rec infer env e =
       | Some t -> t
       | None -> type_error (sprintf "unbound variable %s" v)
       end
+  (* Lam *)
   | Eabstr (v, t, expr) ->
 	let nw_env = add_typenv v t env in
 	let t2 = infer nw_env expr in
 	Arrow(t, t2)
+  (* App *)
   | Eapp (e1, e2) ->
 	begin match infer env e1 with
 	| Arrow (t1, t2) -> 

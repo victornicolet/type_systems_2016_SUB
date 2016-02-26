@@ -1,3 +1,5 @@
+open Printf
+
 (* Abstract syntax for the source language SUB *)
 
 type variable = string  (* Names of variables *)
@@ -7,14 +9,12 @@ type label = string     (* Names of record labels *)
 
 type typ =
   | Top
-  | Alpha
   | Int
   | Float
-  | TypeVariable of variable
+  | Tvar of variable
   | Arrow of typ * typ
   | Record of rectyp
-  | Parametric of
-	  (typ list * typ) (* Parametric type *)
+  | Parametric of(variable * typ)
 
 
 and rectyp = (label * typ) list
@@ -50,6 +50,9 @@ type expr =
   | Efield of expr * label
   (* Type constraint *)
   | Econstraint of expr * typ
+  (* Parametric polymorphism *)
+  | ETabstr of variable * expr
+  | ETapp of expr * typ
 
 (* Utility functions *)
 
@@ -61,15 +64,10 @@ and pretty_typ1 = function
   | Top -> "T"
   | Int -> "int"
   | Float -> "float"
-  | TypeVariable v -> v
+  | Tvar v -> v
   | Record rt -> "{" ^ String.concat "; " (List.map pretty_field rt) ^ "}"
-  | Parametric (tl, t) -> "forall " ^ String.concat " " (List.map type_variable tl) ^ ":" ^ pretty_typ t
+  | Parametric (tl, t) -> "forall " ^ tl ^ " : " ^ pretty_typ t
   | t -> "(" ^ pretty_typ t ^ ")"
-
-and type_variable tv =
-  match tv with
-  | TypeVariable tv -> tv
-  | _ -> failwith "Only for type variables"
 
 and pretty_field (lbl, ty) =
   lbl ^ ":" ^ pretty_typ ty
@@ -105,6 +103,37 @@ let add_typenv = StringMap.add
 let lookup_typenv x env =
   try Some(StringMap.find x env) with Not_found -> None
 
+(* Other typing utilities *)
+exception Typ_error of string
+
+let	rec subst_type_var a ty_var ty =
+  match ty with
+  | Tvar v -> if v = a then ty_var else Tvar v
+  | Int | Float | Top -> ty
+  | Arrow (t1, t2) -> 
+	Arrow (subst_type_var a ty_var t1,
+		   subst_type_var a ty_var t2)
+  | Record tlist ->
+	Record (List.map (fun ft -> 
+	  (fst ft, subst_type_var a ty_var (snd ft))) tlist)
+  | Parametric (b, t) ->
+	begin
+	  if b = a then
+		failwith "Type variable is already in use !" 
+	  else
+		Parametric(b, subst_type_var a ty_var t)
+	end
+
+let type_instance univ_type t =
+  match univ_type with
+  | Parametric (a, ty) ->
+	subst_type_var a t ty
+  | _ -> 
+	raise (Typ_error (sprintf 
+				  "Expected a parametric type but got %s" (pretty_typ univ_type)))
+
 (* Exception used for error reporting *)
 
 exception Duplicate_label of string
+
+

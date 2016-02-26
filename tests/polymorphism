@@ -1,3 +1,6 @@
 (* Examples of non-trivial subtyping.  They should all pass. *)
-let f (x : a') = {y = x} in
-f 4;;
+let g <a b> (x : a) (y : b) = {i = x; j = y} in
+	let record = g [int float] 1 2 in
+		let rec_of_rec = g [{i:int; j:float} float] record 1.3 in
+			rec_of_rec.i.i;;
+let f <a> (x : a) = x in f [int] 2;;

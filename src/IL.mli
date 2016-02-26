@@ -45,7 +45,6 @@ type lam =
   | Lcoerce of lam * coercion
        (* Apply a coercion.  [Lcoerce(e, c)] transforms [e] as
           described by the coercion [c]. *)
-
 (* Utility functions *)
 
 val print_lam: lam -> unit

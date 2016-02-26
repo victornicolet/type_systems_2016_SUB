@@ -25,6 +25,7 @@ rule token = parse
   | blank +     { token lexbuf }
   | "(*"        { comment lexbuf; token lexbuf }
   | ":"         { COLON }
+  | ","         { COMMA }
   | "."         { DOT }
   | eof         { EOF }
   | "="         { EQUAL }
@@ -33,12 +34,16 @@ rule token = parse
   | "in"        { IN }
   | "int"       { INT }
   | "{"         { LBRACE }
+  | "["         { LBRACKET }
+  | "<"         { LCHEVRON }
   | "let"       { LET }
   | "("         { LPAREN }
   | "->"        { MINUSGREATER }
   | "+."        { PLUSDOT }
   | "+"         { PLUS }
   | "}"         { RBRACE }
+  | "]"         { RBRACKET }
+  | ">"         { RCHEVRON }
   | ")"         { RPAREN }
   | ";"         { SEMI }
   | ";;"        { SEMISEMI }

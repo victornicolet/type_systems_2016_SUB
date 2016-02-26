@@ -7,6 +7,16 @@ open AST
 let make_abstr params body =
   List.fold_right (fun (param, ty) e -> Eabstr(param, ty, e)) params body
 
+let make_tabstr params body =
+  List.fold_right (fun param e -> ETabstr (param, e)) params body
+
+
+let make_univ_typ params typ = 
+  List.fold_right (fun var ty -> Parametric (var, ty)) params typ
+
+let make_tapp body typs =
+  List.fold_left (fun body ty -> ETapp (body, ty)) body typs
+
 let rec check_duplicates (l: (string * 'a) list) =
   match l with
   | [] -> ()
@@ -19,6 +29,7 @@ let rec check_duplicates (l: (string * 'a) list) =
 /* Tokens */
 
 %token COLON
+%token COMMA
 %token DOT
 %token EOF
 %token EQUAL
@@ -31,12 +42,16 @@ let rec check_duplicates (l: (string * 'a) list) =
 %token INT
 %token <int> INTCONST
 %token LBRACE
+%token LBRACKET
+%token LCHEVRON
 %token LET
 %token LPAREN
 %token MINUSGREATER
 %token PLUS
 %token PLUSDOT
 %token RBRACE
+%token RBRACKET
+%token RCHEVRON
 %token RPAREN
 %token SEMI
 %token SEMISEMI
@@ -62,17 +77,17 @@ typ:
   | TOP                   { Top }
   | INT                   { Int }
   | FLOAT                 { Float }
-  | IDENT                 { TypeVariable $1}
+  | IDENT                 { Tvar $1}
   | typ MINUSGREATER typ  { Arrow($1,$3) }
   | LBRACE rectyp RBRACE  { check_duplicates $2; Record $2 }
   | LBRACE RBRACE         { Record [] }
   | LPAREN typ RPAREN     { $2 }
-  | FORALL typvars COLON typ { Parametric($2, $4)}
+  | FORALL typvars COMMA typ { make_univ_typ $2 $4}
 ;
 
 typvars:
-  | IDENT {[TypeVariable $1]}
-  | IDENT typvars { (TypeVariable $1) :: $2 }
+  | IDENT { [$1] }
+  | IDENT typvars { $1 :: $2 }
 
 rectyp:
   | lbltyp                { [$1] }
@@ -88,9 +103,12 @@ lbltyp:
 expr:
   | expr2                             { $1 }
   | FUN funparams MINUSGREATER expr   { make_abstr $2 $4 }
+  | LCHEVRON typparams RCHEVRON expr  { make_tabstr $2 $4 }
   | LET IDENT EQUAL expr IN expr      { Elet($2,$4,$6) }
   | LET IDENT funparams EQUAL expr IN expr
                                       { Elet($2, make_abstr $3 $5, $7) }
+  | LET IDENT LCHEVRON typparams RCHEVRON funparams EQUAL expr IN expr
+	                                  { Elet($2, make_tabstr $4 (make_abstr $6 $8), $10) }
 ;
 
 expr2:
@@ -101,6 +119,7 @@ expr2:
 
 expr1:
   | expr1 expr0                       { Eapp($1, $2) }
+  | expr1 LBRACKET typargs RBRACKET   { make_tapp $1 $3 }
   | INT expr0                         { Eunop(Ointoffloat, $2) }
   | FLOAT expr0                       { Eunop(Ofloatofint, $2) }
   | expr0                             { $1 }
@@ -134,6 +153,14 @@ funparams:
 funparam:
     LPAREN IDENT COLON typ RPAREN     { ($2,$4) }
 ;
+
+typargs:
+  | typ { [$1] }
+  | typ typargs { $1 :: $2 }
+
+typparams:
+  | IDENT { [$1] }
+  | IDENT typparams { $1 :: $2 }
 
 /* Entry points */
 

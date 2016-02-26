@@ -22,7 +22,7 @@ let rec subtype t1 t2 =
 	  (subtype s3 s1) && (subtype s2 s4) (* SUBFUN*)
 	| Record r1, Record r2 ->
 	  subtyperecs r1 r2 
-		(* SUBREC *)
+		(* SUBREC *) 
 	| _, _ -> false
   end
 and subtyperecs r1 r2 =
@@ -56,7 +56,7 @@ let rec infer env e =
 	begin match infer env e1 with
 	| Arrow (t1, t2) -> 
 	  check env e2 t1; t2
-	| _ -> type_error (sprintf "not a function ")
+	| _ as t0 -> type_error (sprintf "Expected an arrow type, got %s" (pretty_typ t0))
 	end
   | Elet (v, ev, es) ->
 	let typ_v = infer env ev in
@@ -92,6 +92,13 @@ let rec infer env e =
   (* Type constraint *)
   | Econstraint(e, t) ->
       check env e t; t
+  (* Polymorphic expressions *)
+  | ETabstr(var, expr) ->
+	let nw_env = add_typenv var Top env in
+	Parametric(var, infer nw_env expr)
+  | ETapp (expr, ty) ->
+	let ty0 = infer env expr in
+	type_instance ty0 ty
 
 (* Check that expression [e] has type [t] in typing environment [env].
    Return [()] if true.  Raise [Type_error] if not. *)
@@ -101,3 +108,11 @@ and check env e t =
   if not (subtype t1 t) then
     type_error
       (sprintf "expected type %s, got %s" (pretty_typ t) (pretty_typ t1))
+
+and type_instance univ_type t =
+  match univ_type with
+  | Parametric (a, ty) ->
+	subst_type_var a t ty
+  | _ -> 
+	type_error (sprintf 
+				  "Expected a parametric type but got %s" (pretty_typ univ_type))

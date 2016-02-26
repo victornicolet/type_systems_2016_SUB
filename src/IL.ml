@@ -19,7 +19,6 @@ type lam =
   | Ltuple of lam list
   | Lfield of lam * int
   | Lcoerce of lam * coercion
-
 (* Pretty-printer *)
 
 open Format

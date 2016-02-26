@@ -1,0 +1,11 @@
+# Parametric polymorphism (System F)
+We add to the grammar the following constructs for types and expressions :
+*  Types:
+        - t = T ...
+              forall a : t  (* Parametric type *)
+              v             (* Type varaible *)
+*  Expressions:
+        -  e = x ...
+               | <a_1.. a_n> e (* Type abstraction *)
+               | e1 [t]        (* Type application *)
+

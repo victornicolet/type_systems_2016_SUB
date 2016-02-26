@@ -129,6 +129,17 @@ let rec elab env e =
 
   | Econstraint(e, t) ->
 	t, check env e t
+  (* Polymorphism *)
+  | ETabstr(var, expr) ->
+	let nw_env = add_typenv var Top env in
+	let par_typ, ltabs = elab nw_env expr in
+	Parametric(var, par_typ),
+	ltabs
+  | ETapp (expr, ty) ->
+	let ty0, lam0 = elab env expr in
+	type_instance ty0 ty,
+	lam0
+
 
 (* Check that expression [e] has type [t] in typing environment [env].
    Return its lambda translation if so.

@@ -2,6 +2,8 @@
 *.cmx
 *.mli.depends
 */_build
-src/_tags
+*/_tags
 *#
+.#*
 *.native
+src/.#*

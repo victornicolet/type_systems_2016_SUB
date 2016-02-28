@@ -33,6 +33,9 @@ let rec subtype t1 t2 =
 	  Cfun ((subtype s3 s1),(subtype s2 s4))
 	| Record r1, Record r2 ->
 	  Crecord( subtyperecs r1 r2)
+	| Parametric (a, ea), Parametric (b, eb) ->
+	  let eba = subst_type_var b (Tvar a) eb in
+	  subtype ea eba
 	| _, _ -> raise Not_subtype
   end
 and subtyperecs r1 r2 =

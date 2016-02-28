@@ -23,6 +23,9 @@ let rec subtype t1 t2 =
 	| Record r1, Record r2 ->
 	  subtyperecs r1 r2 
 		(* SUBREC *) 
+	| Parametric (a, ea), Parametric (b, eb) -> (* SUBREFL *)
+	  let eba = if a = b then eb else subst_type_var b (Tvar a) eb in
+	  subtype ea eba
 	| _, _ -> false
   end
 and subtyperecs r1 r2 =
@@ -30,8 +33,8 @@ and subtyperecs r1 r2 =
   | [] -> true
   | hd::tl ->
 	try
-	  List.find
-		(fun  x -> (fst x)=(fst hd)&& (subtype (snd x) (snd hd))) r1;
+	  ignore(List.find
+		(fun  x -> (fst x)=(fst hd) && (subtype (snd x) (snd hd))) r1);
 	  subtyperecs r1 tl
 	with Not_found -> printf "Not found\n"; false
 	  
@@ -48,6 +51,17 @@ let rec infer env e =
       end
   (* Lam *)
   | Eabstr (v, t, expr) ->
+	(* First, check that the type variable is not bounded in the environment *)
+	begin
+	  match t with
+	  | Tvar a -> 
+		begin
+		  match lookup_typenv a env with
+		  | Some t -> ()
+		  | None -> type_error (sprintf "unbound type variable %s" a)
+		end
+	  | _ -> ()
+	end;
 	let nw_env = add_typenv v t env in
 	let t2 = infer nw_env expr in
 	Arrow(t, t2)
@@ -56,7 +70,11 @@ let rec infer env e =
 	begin match infer env e1 with
 	| Arrow (t1, t2) -> 
 	  check env e2 t1; t2
-	| _ as t0 -> type_error (sprintf "Expected an arrow type, got %s" (pretty_typ t0))
+	| Parametric _  as t0->
+	  type_error (sprintf "Expected a function, but got a type abstraction : %s 
+\tMaybe you forgot a type application ?" (pretty_typ t0))
+	| _ as t0 -> type_error (sprintf "Expected a function, got %s"
+							   (pretty_typ t0))
 	end
   | Elet (v, ev, es) ->
 	let typ_v = infer env ev in
@@ -109,10 +127,3 @@ and check env e t =
     type_error
       (sprintf "expected type %s, got %s" (pretty_typ t) (pretty_typ t1))
 
-and type_instance univ_type t =
-  match univ_type with
-  | Parametric (a, ty) ->
-	subst_type_var a t ty
-  | _ -> 
-	type_error (sprintf 
-				  "Expected a parametric type but got %s" (pretty_typ univ_type))

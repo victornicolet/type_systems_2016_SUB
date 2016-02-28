@@ -148,6 +148,10 @@ let rec print_value v t =
   | (Tuple vl, Record rt) ->
       printf "{"; print_record_value true vl rt; printf "}"
   | (_, Record rt) -> printf "<bad record value>"
+  (* Polymorphism *)
+  | (_, Tvar a) -> printf "<value with type parameter>"
+  | ( Closure _, Parametric(a, ta)) -> printf "<forall %s : fun>" a
+  | (_, Parametric(a, ta)) -> printf "<bad polymorphic value>"
 
 and print_record_value first vl rt =
   match (vl, rt) with

@@ -33,6 +33,9 @@ let rec subtype t1 t2 =
 	  Cfun ((subtype s3 s1),(subtype s2 s4))
 	| Record r1, Record r2 ->
 	  Crecord( subtyperecs r1 r2)
+	| Parametric (a, ea), Parametric (b, eb) ->
+	  let eba = subst_type_var b (Tvar a) eb in
+	  subtype ea eba
 	| _, _ -> raise Not_subtype
   end
 and subtyperecs r1 r2 =
@@ -129,6 +132,17 @@ let rec elab env e =
 
   | Econstraint(e, t) ->
 	t, check env e t
+  (* Polymorphism *)
+  | ETabstr(var, expr) ->
+	let nw_env = add_typenv var Top env in
+	let par_typ, ltabs = elab nw_env expr in
+	Parametric(var, par_typ),
+	ltabs
+  | ETapp (expr, ty) ->
+	let ty0, lam0 = elab env expr in
+	type_instance ty0 ty,
+	lam0
+
 
 (* Check that expression [e] has type [t] in typing environment [env].
    Return its lambda translation if so.

@@ -21,38 +21,41 @@ let rec optim (l: lam) : lam =
 
 
 and optim_coercion (l : lam) (c2: coercion) =
-  match optim l, c2 with
-  | Lcoerce (l0, c1), _ ->
-	let c = compose_coercions c1 c2 in
-	Lcoerce(l0, c)
-  (* Don't build big records that are coerced to smaller ones immdiately *)
-  | Ltuple lam_list, Crecord i_coercion_list ->
-		(* Case 1 : same number of fields, maybe we 
-		   can simplify the coercion to Cid *)
-	if List.length lam_list = List.length i_coercion_list then
-	  let rec simpl_rec_coercion i_c_list index =
-		match i_c_list with
-		| [] -> Cid
-		| hd::tl -> 
-		  begin
-			if (snd hd) = Cid && (fst hd) = index then
-			  simpl_rec_coercion tl (index+1)
-			else
-			  c2
-		  end
-	  in
-	  Lcoerce (l, (simpl_rec_coercion i_coercion_list 0))
-	(* O/w simplify the record, we don't need the full tuple ! *)
-	else
-	  let rec simplify co_list =
-		match co_list with
-		| [] -> []
-		| hd::tl ->
-		  (optim_coercion (List.nth lam_list (fst hd)) (snd hd))::(simplify tl)
-	  in
-	  Ltuple (simplify i_coercion_list)
-  | _ -> Lcoerce (l, c2)
-
+  let ol = optim l in
+  begin
+	match optim l, c2 with
+	| Lcoerce (l0, c1), _ ->
+	  let c = compose_coercions c1 c2 in
+	  Lcoerce(l0, c)
+	(* Don't build big records that are coerced to smaller ones immdiately *)
+	| Ltuple lam_list, Crecord i_coercion_list ->
+	  (* Case 1 : same number of fields, maybe we 
+		 can simplify the coercion to Cid *)
+	  if List.length lam_list = List.length i_coercion_list then
+		let rec simpl_rec_coercion i_c_list index =
+		  match i_c_list with
+		  | [] -> Cid
+		  | hd::tl -> 
+			begin
+			  if (snd hd) = Cid && (fst hd) = index then
+				simpl_rec_coercion tl (index+1)
+			  else
+				c2
+			end
+		in
+		Lcoerce (l, (simpl_rec_coercion i_coercion_list 0))
+	  (* O/w simplify the record, we don't need the full tuple ! *)
+	  else
+		let rec simplify co_list =
+		  match co_list with
+		  | [] -> []
+		  | hd::tl ->
+			(optim_coercion (List.nth lam_list (fst hd)) (snd hd))::(simplify tl)
+		in
+		Ltuple (simplify i_coercion_list)
+	| _, Cfun (cin, cout) when cin = Cid && cout = Cid -> Lcoerce (ol, Cid)
+	| _ -> Lcoerce (ol, c2)
+end
 
   (*
 	In case of nested coercions we have a lambda of the form

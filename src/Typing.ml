@@ -22,7 +22,10 @@ let rec subtype t1 t2 =
 	  (subtype s3 s1) && (subtype s2 s4) (* SUBFUN*)
 	| Record r1, Record r2 ->
 	  subtyperecs r1 r2 
-		(* SUBREC *)
+		(* SUBREC *) 
+	| Parametric (a, ea), Parametric (b, eb) -> (* SUBREFL *)
+	  let eba = if a = b then eb else subst_type_var b (Tvar a) eb in
+	  subtype ea eba
 	| _, _ -> false
   end
 and subtyperecs r1 r2 =
@@ -30,8 +33,8 @@ and subtyperecs r1 r2 =
   | [] -> true
   | hd::tl ->
 	try
-	  List.find
-		(fun  x -> (fst x)=(fst hd)&& (subtype (snd x) (snd hd))) r1;
+	  ignore(List.find
+		(fun  x -> (fst x)=(fst hd) && (subtype (snd x) (snd hd))) r1);
 	  subtyperecs r1 tl
 	with Not_found -> printf "Not found\n"; false
 	  
@@ -46,15 +49,32 @@ let rec infer env e =
       | Some t -> t
       | None -> type_error (sprintf "unbound variable %s" v)
       end
+  (* Lam *)
   | Eabstr (v, t, expr) ->
+	(* First, check that the type variable is not bounded in the environment *)
+	begin
+	  match t with
+	  | Tvar a -> 
+		begin
+		  match lookup_typenv a env with
+		  | Some t -> ()
+		  | None -> type_error (sprintf "unbound type variable %s" a)
+		end
+	  | _ -> ()
+	end;
 	let nw_env = add_typenv v t env in
 	let t2 = infer nw_env expr in
 	Arrow(t, t2)
+  (* App *)
   | Eapp (e1, e2) ->
 	begin match infer env e1 with
 	| Arrow (t1, t2) -> 
 	  check env e2 t1; t2
-	| _ -> type_error (sprintf "not a function ")
+	| Parametric _  as t0->
+	  type_error (sprintf "Expected a function, but got a type abstraction : %s 
+\tMaybe you forgot a type application ?" (pretty_typ t0))
+	| _ as t0 -> type_error (sprintf "Expected a function, got %s"
+							   (pretty_typ t0))
 	end
   | Elet (v, ev, es) ->
 	let typ_v = infer env ev in
@@ -90,6 +110,13 @@ let rec infer env e =
   (* Type constraint *)
   | Econstraint(e, t) ->
       check env e t; t
+  (* Polymorphic expressions *)
+  | ETabstr(var, expr) ->
+	let nw_env = add_typenv var Top env in
+	Parametric(var, infer nw_env expr)
+  | ETapp (expr, ty) ->
+	let ty0 = infer env expr in
+	type_instance ty0 ty
 
 (* Check that expression [e] has type [t] in typing environment [env].
    Return [()] if true.  Raise [Type_error] if not. *)
@@ -99,3 +126,4 @@ and check env e t =
   if not (subtype t1 t) then
     type_error
       (sprintf "expected type %s, got %s" (pretty_typ t) (pretty_typ t1))
+

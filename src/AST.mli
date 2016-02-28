@@ -9,8 +9,10 @@ type typ =
   | Top                 (* The universal "top" type *)
   | Int                 (* The type of integer numbers *)
   | Float               (* The type of floating-point numbers *)
+  | Tvar of variable
   | Arrow of typ * typ  (* Function types t1 -> t2 *)
   | Record of rectyp    (* Record types { ... lbl : t ... } *)
+  | Parametric of (variable * typ) (* Parametric type *)
 
 and rectyp = (label * typ) list
 
@@ -45,6 +47,9 @@ type expr =
   | Efield of expr * label              (* e.lbl *)
   (* Type constraint *)
   | Econstraint of expr * typ           (* (e : t) *)
+  (* Parametric polymorphism *)
+  | ETabstr of variable * expr
+  | ETapp of expr * typ
 
 (* Utility functions *)
 
@@ -86,6 +91,12 @@ val lookup_typenv: variable -> typenv -> typ option
      variable [x] to type [t].  
      If [x] is not bound in [env], returns [None]. *)
 
+(* Typing utilities for polymorphic SUB *)
+val subst_type_var: variable -> typ -> typ -> typ
+val type_instance: typ -> typ -> typ
+  (* [type_instance t t'] performs a type application in t. 
+	 [t] must be a parametric type, otherwise the function fails
+  *)
 (* Error reporting *)
 
 exception Duplicate_label of string

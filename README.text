@@ -1,0 +1,31 @@
+# Programming tasks
+All the problems in the 5 programming tasks have been adressed.
+* De Bruijn indices are computed on the fly during machine code generation.
+* Tail call optimization is performed at compile time : the compiling function in Compile.ml is split in two, 
+       - "compile_expression : lam -> variable list -> instruction list"
+       - "compile_tail_expression : lam -> varaible list -> code" compiles exprssions in tail position.
+* Optimization of coercions :
+       - nested coercions are optimized
+       - records immmediately coerced to small record are built with only he filds seen after the coercion.
+       - "identity" coercions are simplified, e.g. Crecord[(1, Cid)] is Cid, Cfun(Cid, Cid) is Cid.
+
+# Parametric polymorphism (System F)
+We add to the grammar the following constructs for types and expressions :
+*  Types:
+        - t = T ...
+              forall a : t  (* Parametric type *)
+              v             (* Type variable *)
+*  Expressions:
+        -  e = x ...
+               | <a_1.. a_n> e (* Type abstraction *)
+               | let f <a1 .. an> x1.. xN = e in e 
+                               (* let binding with type abstraction *)        
+               | e1 [t]        (* Type application *)
+
+
+In SUB, we use an explicit polymorphism : the programmer has to provide the type information with type abstraction and type application, here is an example :
+   let f <a> (x: a) = x in f [int] 1;;
+Adding support for polymorphism changes only the typing task; elaboration, commpilation and machine code execution are left unchanged.
+The parametric types could have been represented more efficiently, in this version checking the equality of two parametric types implies naively renaming variables.
+
+Some examples have been added in tests/polymorphism, and utility functions in AST.ml.
